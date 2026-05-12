@@ -602,8 +602,9 @@ Este skill está diseñado para funcionar tanto en **Claude Code** como **Codex*
 | `/learn` | English alias for `/aprende`. |
 | `/aprende --review` | Revisit existing lessons; mark retired or refresh. |
 | `/aprende --portable` | Standard run + mirror lessons to `./.aprende/`. |
-| `/aprende enable-hooks` | Install PostToolUse + Stop hooks into `~/.claude/settings.json`. |
-| `/aprende disable-hooks` | Remove those hooks. |
+| `/aprende --dry-run` | Run passes A-D but skip the write pass. Preview only. |
+| `/aprende-enable-hooks` | Install PostToolUse + Stop hooks into `~/.claude/settings.json`. |
+| `/aprende-disable-hooks` | Remove those hooks. |
 
 ---
 

@@ -11,7 +11,7 @@ allowed-tools:
   - Bash
 ---
 
-# `/aprende disable-hooks`
+# `/aprende-disable-hooks`
 
 When invoked, remove the aprende hooks from the user's global
 `~/.claude/settings.json`. Leaves other hooks (from other plugins or
@@ -46,7 +46,7 @@ manually added) untouched.
    ✓ aprende hooks removed from ~/.claude/settings.json
    ✓ Backup at ~/.claude/settings.json.aprende-backup-<timestamp>
    ✓ Other hooks (if any) preserved.
-   To reinstall, run /aprende enable-hooks.
+   To reinstall, run /aprende-enable-hooks.
    ```
 
 ## Safety

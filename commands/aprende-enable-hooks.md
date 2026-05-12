@@ -11,7 +11,7 @@ allowed-tools:
   - Bash
 ---
 
-# `/aprende enable-hooks`
+# `/aprende-enable-hooks`
 
 When invoked, install (or confirm installation of) the aprende hooks into
 the user's global `~/.claude/settings.json`. The hooks themselves ship in
@@ -34,7 +34,7 @@ session.
    - If present, print:
      ```
      aprende hooks are already installed in ~/.claude/settings.json.
-     To remove, run /aprende disable-hooks.
+     To remove, run /aprende-disable-hooks.
      ```
      and exit.
 
@@ -86,7 +86,7 @@ session.
    ✓ aprende hooks installed in ~/.claude/settings.json
    ✓ Backup at ~/.claude/settings.json.aprende-backup-<timestamp>
    PostToolUse + Stop hooks are now active.
-   To remove, run /aprende disable-hooks.
+   To remove, run /aprende-disable-hooks.
    ```
 
 ## Safety

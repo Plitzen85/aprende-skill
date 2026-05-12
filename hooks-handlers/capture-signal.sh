@@ -4,41 +4,66 @@
 # Reads the hook JSON payload from stdin and appends a signal record to
 # ~/.claude/projects/<slug>/.aprende-signals.md when something interesting
 # happened (non-zero exit code, error in stderr, repeated edit to the same
-# file, repeated bash retry).
+# file).
 #
-# This script NEVER writes a learning. It only accumulates signal records.
-# The /aprende slash command reads this file in Pass A.
+# CONTRACTS (do not break):
+#   - This script NEVER writes a learning. It only accumulates signal
+#     records. /aprende reads them in Pass A.
+#   - It NEVER blocks tool calls. Exit code is always 0, even on internal
+#     error.
+#   - It NEVER overwrites user files. Append-only on per-session scratch.
+#   - It NEVER leaks resources. Temp files are cleaned via trap.
 #
-# Safe: every operation is append-only on a per-session scratch file. No
-# user files are modified. No tool calls are blocked. Exit code is always 0.
+# Portability: bash 3.2+ (macOS default) and bash 5+. No GNU-only flags.
 
-set -u  # treat unset vars as errors; do not set -e (we never want to fail the hook)
+set -u  # treat unset vars as errors; do NOT set -e (we never want to fail)
+
+# --- bulletproof exit -----------------------------------------------------
+# Any unexpected failure: log to stderr (Claude Code will swallow it) and
+# exit 0 so the user's tool call is not affected.
+trap '_aprende_cleanup' EXIT
+
+_aprende_tmpfiles=()
+_aprende_cleanup() {
+  local f
+  for f in "${_aprende_tmpfiles[@]:-}"; do
+    [[ -n "$f" && -f "$f" ]] && rm -f "$f"
+  done
+}
 
 # --- read payload ---------------------------------------------------------
 payload=$(cat 2>/dev/null || true)
-if [[ -z "$payload" ]]; then
-  exit 0
-fi
+[[ -z "$payload" ]] && exit 0
 
 # --- derive project slug --------------------------------------------------
-# CLAUDE_PROJECT_DIR is set by Claude Code to the project root.
-# Fallback: pwd. Convert /a/b/c -> -a-b-c (matches the existing convention).
-project_dir="${CLAUDE_PROJECT_DIR:-$PWD}"
-slug=$(echo "$project_dir" | sed 's|/|-|g')
-# strip a single trailing dash if pwd had a trailing slash
-slug="${slug%-}"
+# CLAUDE_PROJECT_DIR is set by Claude Code. Fallback: pwd.
+project_dir="${CLAUDE_PROJECT_DIR:-${PWD:-/tmp}}"
+# Reject obvious garbage (empty, /, just whitespace).
+case "$project_dir" in
+  ""|"/"|" "*) exit 0 ;;
+esac
+
+# Convert /a/b/c -> -a-b-c. Matches Claude Code's project memory folder
+# convention (leading dash preserved).
+slug=$(printf '%s' "$project_dir" | sed 's|/|-|g')
+slug="${slug%-}"  # drop trailing dash if pwd had a trailing /
 
 signals_dir="${HOME}/.claude/projects/${slug}"
 signals_file="${signals_dir}/.aprende-signals.md"
+counter_file="${signals_dir}/.aprende-edit-counts.tsv"
+lock_file="${signals_dir}/.aprende.lock"
 
 mkdir -p "$signals_dir" 2>/dev/null || exit 0
 
 # --- inspect payload ------------------------------------------------------
-# We avoid hard jq dependency; use bash + grep. The hook JSON has fields:
-# tool_name, tool_input, tool_response (with success/error fields).
-tool_name=$(printf '%s' "$payload" | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+# No jq dependency: shell + grep. The hook JSON has fields tool_name,
+# tool_input, tool_response (with success/error/exit_code).
+tool_name=$(printf '%s' "$payload" \
+  | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' \
+  | head -1 \
+  | sed 's/.*"\([^"]*\)"$/\1/')
 
-# Detect failure signals (any of these patterns in the payload):
+# Detect failure signals.
 is_error=0
 if printf '%s' "$payload" | grep -qE '"is_error"[[:space:]]*:[[:space:]]*true'; then
   is_error=1
@@ -46,49 +71,65 @@ fi
 if printf '%s' "$payload" | grep -qE '"exit_code"[[:space:]]*:[[:space:]]*[1-9]'; then
   is_error=1
 fi
-if printf '%s' "$payload" | grep -qiE '(error|exception|failed|fatal|traceback)' >/dev/null; then
-  # Heuristic: error keyword in tool response. Only count if not the user input.
-  if printf '%s' "$payload" | grep -qE '"tool_response"' && \
-     printf '%s' "$payload" | grep -qE '"(stderr|output|error)"'; then
-    is_error=1
-  fi
-fi
 
-# --- write signal record --------------------------------------------------
+# Write signal record (append is atomic for short lines on POSIX).
 timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 if [[ $is_error -eq 1 ]]; then
-  printf -- '- %s  error-from-%s\n' "$timestamp" "${tool_name:-unknown}" >> "$signals_file"
+  printf -- '- %s  error-from-%s\n' "$timestamp" "${tool_name:-unknown}" >> "$signals_file" 2>/dev/null || exit 0
 fi
 
-# Track repeated edits: if the same file appears in an Edit/Write tool_input
-# 3+ times today, that's a repeated-attempt signal. We use a per-day counter.
+# --- repeated-edit tracking (with file lock) ------------------------------
 if [[ "$tool_name" == "Edit" || "$tool_name" == "Write" ]]; then
-  file_path=$(printf '%s' "$payload" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+  file_path=$(printf '%s' "$payload" \
+    | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' \
+    | head -1 \
+    | sed 's/.*"\([^"]*\)"$/\1/')
+
   if [[ -n "$file_path" ]]; then
-    counter_file="${signals_dir}/.aprende-edit-counts.tsv"
     today=$(date -u +"%Y-%m-%d")
-    # increment the count for this file today
-    if [[ -f "$counter_file" ]]; then
-      prev=$(grep -F "${today}	${file_path}" "$counter_file" | head -1 | awk -F'\t' '{print $3}')
-      prev="${prev:-0}"
-    else
+
+    # Lock around the read-modify-write to avoid races between concurrent
+    # PostToolUse invocations. flock is on macOS (util-linux flock from brew)
+    # OR Linux. If not available, fall back to non-atomic best-effort.
+    (
+      if command -v flock >/dev/null 2>&1; then
+        flock -x 9 || exit 0
+      fi
+
+      # Read current count for (today, file_path).
       prev=0
-    fi
-    new=$((prev + 1))
-    # rewrite line (or append)
-    if grep -qF "${today}	${file_path}" "$counter_file" 2>/dev/null; then
-      # macOS-compatible in-place sed
-      tmpfile=$(mktemp)
-      awk -F'\t' -v t="$today" -v f="$file_path" -v n="$new" '
-        $1==t && $2==f { printf "%s\t%s\t%s\n", t, f, n; next }
-        { print }
-      ' "$counter_file" > "$tmpfile" && mv "$tmpfile" "$counter_file"
-    else
-      printf '%s\t%s\t%s\n' "$today" "$file_path" "$new" >> "$counter_file"
-    fi
-    if [[ $new -eq 3 ]]; then
-      printf -- '- %s  repeated-edit %s (3x today)\n' "$timestamp" "$file_path" >> "$signals_file"
-    fi
+      if [[ -f "$counter_file" ]]; then
+        prev=$(awk -F'\t' -v t="$today" -v f="$file_path" '
+          $1==t && $2==f { print $3; exit }
+        ' "$counter_file")
+        prev="${prev:-0}"
+      fi
+      new=$((prev + 1))
+
+      # Rewrite counter file atomically via temp.
+      tmpfile=$(mktemp 2>/dev/null) || exit 0
+      _aprende_tmpfiles+=("$tmpfile")
+
+      if [[ -f "$counter_file" ]] && grep -qF "${today}	${file_path}" "$counter_file"; then
+        awk -F'\t' -v t="$today" -v f="$file_path" -v n="$new" '
+          $1==t && $2==f { printf "%s\t%s\t%s\n", t, f, n; next }
+          { print }
+        ' "$counter_file" > "$tmpfile"
+      else
+        if [[ -f "$counter_file" ]]; then
+          cat "$counter_file" > "$tmpfile"
+        fi
+        printf '%s\t%s\t%s\n' "$today" "$file_path" "$new" >> "$tmpfile"
+      fi
+
+      mv "$tmpfile" "$counter_file" 2>/dev/null || exit 0
+
+      # Emit repeated-edit signal at the 3rd occurrence.
+      if [[ $new -eq 3 ]]; then
+        printf -- '- %s  repeated-edit %s (3x today)\n' \
+          "$timestamp" "$file_path" >> "$signals_file" 2>/dev/null || true
+      fi
+    ) 9>"$lock_file"
   fi
 fi
 

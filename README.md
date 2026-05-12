@@ -1,20 +1,61 @@
-# aprende
+<div align="center">
 
-> **EN** — A community skill for Claude Code and Codex that turns finished
-> conversations into durable learnings. Reviews the current session,
-> surfaces what's worth preserving across four categories (memory,
-> anti-pattern lesson, skill stub, project-doc), and writes it to disk
-> only after you confirm.
->
-> **ES** — Un skill comunitario para Claude Code y Codex que convierte
-> conversaciones terminadas en aprendizajes durables. Revisa la sesión
-> actual, saca a la luz lo que vale la pena preservar en cuatro categorías
-> (memoria, lección anti-patrón, stub de skill, project-doc), y lo escribe
-> a disco solo después de tu confirmación.
+# 🧠 aprende
+
+### *Turn every conversation into durable knowledge.* / *Convierte cada conversación en conocimiento durable.*
+
+**A community skill for Claude Code and Codex that helps your agent learn from its mistakes — and never repeat them.**
+
+**Un skill comunitario para Claude Code y Codex que ayuda a tu agente a aprender de sus errores — y a no repetirlos.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-2.0%2B-blue)](https://claude.com/claude-code)
 [![Codex compatible](https://img.shields.io/badge/Codex-compatible-green)](https://github.com/Hainrixz/aprende-skill)
+[![Made by tododeia](https://img.shields.io/badge/Made_by-tododeia-ff69b4)](https://www.tododeia.com)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[Install](#install--instalación) · [Usage](#usage--uso) · [How it works](#the-four-categories--las-cuatro-categorías) · [FAQ](#faq) · [Contributing](CONTRIBUTING.md) · [tododeia.com](https://www.tododeia.com)
+
+</div>
+
+---
+
+## ⚡ 30-second pitch / Pitch en 30 segundos
+
+**EN.** You correct your agent. The session ends. Next week, you correct
+it again on the exact same thing. `aprende` fixes that. Type `/aprende`
+at the end of a session — it scans the conversation, surfaces every
+correction worth preserving, asks you which to keep, and writes them
+where your agent will find them next time. Reflexion-style anti-patterns,
+confirmation-first writes, cross-tool (Claude Code + Codex), bilingual.
+
+**ES.** Corriges a tu agente. La sesión termina. La semana siguiente, lo
+vuelves a corregir sobre exactamente lo mismo. `aprende` lo arregla.
+Escribe `/aprende` al final de una sesión — escanea la conversación, saca
+a la luz cada corrección que valga la pena, te pregunta cuáles guardar, y
+las escribe donde el agente las va a encontrar la próxima vez.
+Anti-patrones estilo Reflexion, escritura con confirmación primero,
+cross-tool (Claude Code + Codex), bilingüe.
+
+```
+You:  /aprende
+
+aprende:
+  Found 3 candidate learnings from this conversation.
+
+   1. [project-doc] Use pnpm, not npm — user said "this repo uses pnpm"  (high)
+   2. [lesson]      localStorage fails in purchase WebView — use IndexedDB  (high)
+   3. [memory]      User prefers explicit error messages in tests  (medium)
+
+  >
+
+You:  1,2
+
+aprende:
+  ✓ project  → ./CLAUDE.md + ./AGENTS.md  (## Commands)
+  ✓ lesson   → ~/.claude/projects/.../lesson_webview-localstorage.md
+  Captured 2 learnings. Run /aprende --review next month to prune.
+```
 
 ---
 
@@ -102,10 +143,11 @@ mkdir -p ~/.claude/aprende-hooks
 cp aprende-skill/hooks-handlers/*.sh ~/.claude/aprende-hooks/
 chmod +x ~/.claude/aprende-hooks/*.sh
 ```
-Then in a Claude Code session, run `/aprende enable-hooks` — it will
+Then in a Claude Code session, run `/aprende-enable-hooks` — it will
 splice the hook entries into `~/.claude/settings.json`. You'll need to
 replace `${CLAUDE_PLUGIN_ROOT}` with `~/.claude/aprende-hooks` in those
-entries since manual install doesn't set that env var.
+entries since manual install doesn't set that env var. The README walks
+through the exact JSON to paste.
 
 **ES.** Clona el repo y copia la carpeta del skill:
 ```bash
@@ -120,7 +162,7 @@ mkdir -p ~/.claude/aprende-hooks
 cp aprende-skill/hooks-handlers/*.sh ~/.claude/aprende-hooks/
 chmod +x ~/.claude/aprende-hooks/*.sh
 ```
-Luego en Claude Code corre `/aprende enable-hooks`. Reemplaza
+Luego en Claude Code corre `/aprende-enable-hooks`. Reemplaza
 `${CLAUDE_PLUGIN_ROOT}` con `~/.claude/aprende-hooks` en las entradas que
 agrega — la instalación manual no setea esa env var.
 
@@ -134,8 +176,8 @@ agrega — la instalación manual no setea esa env var.
 | `/learn` | English alias for `/aprende`. |
 | `/aprende --review` | Revisit existing lessons. Mark retired or refresh. |
 | `/aprende --portable` | Standard run + mirror lessons to `./.aprende/` for Codex compatibility. |
-| `/aprende enable-hooks` | Install hooks into `~/.claude/settings.json`. |
-| `/aprende disable-hooks` | Remove them. |
+| `/aprende-enable-hooks` | Install hooks into `~/.claude/settings.json`. |
+| `/aprende-disable-hooks` | Remove them. |
 
 ### Example session
 
@@ -184,7 +226,7 @@ moment you install:
 Both hooks are bilingual in their messages, run in <50ms, and exit cleanly
 on any error so they never block your work.
 
-To disable: `/aprende disable-hooks` (removes the entries from
+To disable: `/aprende-disable-hooks` (removes the entries from
 `~/.claude/settings.json` — keeps a backup).
 
 **ES.** Cuando instalas vía plugin, dos hooks están activos desde el
@@ -203,7 +245,7 @@ inicio:
 Ambos hooks son bilingües, corren en <50ms, y siempre salen sin error
 para no bloquear tu trabajo.
 
-Para desactivar: `/aprende disable-hooks` (quita las entradas de
+Para desactivar: `/aprende-disable-hooks` (quita las entradas de
 `~/.claude/settings.json` — deja un backup).
 
 ---
@@ -254,7 +296,7 @@ Para desactivar: `/aprende disable-hooks` (quita las entradas de
 │   ├── aprende/        # the skill (workflow)
 │   ├── learn/          # English alias
 │   └── ...             # any skills /aprende drafted as stubs
-└── settings.json       # hook config (after /aprende enable-hooks)
+└── settings.json       # hook config (after /aprende-enable-hooks)
 
 <your-project>/
 ├── CLAUDE.md           # for Claude Code
@@ -391,3 +433,20 @@ Built on patterns from:
 ## License / Licencia
 
 MIT — see [LICENSE](LICENSE).
+
+---
+
+<div align="center">
+
+### Made with discipline against false positives.
+### Hecho con disciplina contra los falsos positivos.
+
+**Built by [tododeia](https://www.tododeia.com) · Maintained by [@Hainrixz](https://github.com/Hainrixz)**
+
+If `aprende` saved you from repeating a mistake, [⭐ star the repo](https://github.com/Hainrixz/aprende-skill) and share it with someone whose agent keeps doing the same thing wrong.
+
+Si `aprende` te salvó de repetir un error, [⭐ dale una estrella](https://github.com/Hainrixz/aprende-skill) y compártelo con alguien cuyo agente sigue haciendo lo mismo mal.
+
+[**www.tododeia.com**](https://www.tododeia.com)
+
+</div>
