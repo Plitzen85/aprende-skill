@@ -8,6 +8,7 @@
 
 **Un skill comunitario para Claude Code y Codex que ayuda a tu agente a aprender de sus errores — y a no repetirlos.**
 
+[![CI](https://github.com/Hainrixz/aprende-skill/actions/workflows/validate.yml/badge.svg)](https://github.com/Hainrixz/aprende-skill/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-2.0%2B-blue)](https://claude.com/claude-code)
 [![Codex compatible](https://img.shields.io/badge/Codex-compatible-green)](https://github.com/Hainrixz/aprende-skill)
