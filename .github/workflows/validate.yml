@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# Future-proof: opt into Node.js 24 for JS-based actions ahead of the
+# 2026-06-02 forced switch. If our action versions break on Node 24, we
+# learn now instead of when GitHub removes Node 20 (2026-09-16).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   validate:
     runs-on: ubuntu-latest
