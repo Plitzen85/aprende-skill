@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · SemVer.
 ## [Unreleased]
 
 ### Added
+- **Bilingual README split** — `README.md` is now English-only (the
+  GitHub default surface) and `README.es.md` carries the Spanish version.
+  Each links to the other at the top and footer.
+- **`assets/`** — first-party project art: `mascot.png` (the pixel-art
+  mascot), `hero.png` (21:9 hero banner), `capture.png` and `review.png`
+  (square supporting illustrations embedded next to the relevant
+  README sections). Generated with Higgsfield Nano Banana Pro from the
+  mascot reference; palette and pixel grid kept consistent.
 - `commands/aprende.md` — the main `/aprende` slash command file (without
   it the skill could only be invoked via natural-language triggers).
 - `.claude-plugin/marketplace.json` — registers the plugin so
