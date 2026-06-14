@@ -12,7 +12,7 @@
   "plugins": [
     {
       "name": "aprende",
-      "source": ".",
+      "source": "./",
       "version": "0.1.0",
       "description": "Reflect on the current conversation and save reusable learnings across four categories (memory, lesson, skill stub, project-doc) — confirmation-first, Reflexion-style anti-patterns, dual-write to CLAUDE.md + AGENTS.md for Codex compatibility.",
       "keywords": [
@@ -26,7 +26,10 @@
         "claude-code",
         "codex"
       ],
-      "author": "Hainrixz",
+      "author": {
+        "name": "Hainrixz",
+        "url": "https://github.com/Hainrixz"
+      },
       "license": "MIT",
       "homepage": "https://github.com/Hainrixz/aprende-skill"
     }
