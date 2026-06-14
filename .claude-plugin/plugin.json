@@ -7,10 +7,7 @@
     "url": "https://github.com/Hainrixz"
   },
   "homepage": "https://github.com/Hainrixz/aprende-skill",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Hainrixz/aprende-skill.git"
-  },
+  "repository": "https://github.com/Hainrixz/aprende-skill.git",
   "license": "MIT",
   "keywords": [
     "learning",
