@@ -37,6 +37,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) · SemVer.
   centered hero header, install/usage/FAQ navigation links, footer linking
   to www.tododeia.com.
 
+### Fixed
+- **Plugin & marketplace manifests now conform to the current Claude Code
+  schema** so `marketplace add` + `install` work with the standard CLI:
+  - `.claude-plugin/marketplace.json` — `author` is now an object
+    (`{name, url}`) instead of a string, and `source` is `"./"` (the CLI
+    rejects `"."`).
+  - `.claude-plugin/plugin.json` — `repository` is now a string URL instead
+    of a `{type, url}` object.
+
 ## [0.1.0] — 2026-05-11
 ### Added
 - Initial release of the `aprende` skill / plugin.
